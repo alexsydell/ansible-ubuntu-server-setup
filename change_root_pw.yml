@@ -1,0 +1,17 @@
+---
+- hosts: all
+  remote_user: root
+  ask_pass: yes
+
+  vars_prompt:
+    - name: "new_root_password"
+      prompt: "New root password"
+      private: yes
+      confirm: yes
+      encrypt: "sha512_crypt"
+      salt_size: 16
+
+  tasks:
+    - name: "Change root password"
+      user: name=root createhome=no password={{ new_root_password }}
+

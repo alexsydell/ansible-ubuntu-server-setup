@@ -1,0 +1,6 @@
+---
+- hosts: all
+  user: "{{ user }}"
+  become: yes
+  roles:
+    - { role: secure }

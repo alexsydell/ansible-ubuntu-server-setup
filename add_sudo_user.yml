@@ -1,0 +1,51 @@
+---
+- hosts: all
+  remote_user: root
+
+  vars_prompt:
+    - name: "user"
+      prompt: "New username"
+      private: no
+      default: "deploy"
+
+    - name: "password"
+      prompt: "New user password"
+      private: yes
+      confirm: yes
+      encrypt: "sha512_crypt"
+      salt_size: 16
+
+    - name: "shell"
+      prompt: "Shell"
+      private: no
+      default: "/bin/bash"
+
+    - name: "ssh_key_location"
+      prompt: "SSH key location"
+      private: no
+      default: "~/.ssh/id_rsa.pub"
+
+  tasks:
+    - local_action: stat path="{{ ssh_key_location }}"
+      register: ssh_key_file
+
+    - name: check ssh key
+      fail: msg="Bad SSH key path"
+      when: ssh_key_file.stat.exists is not defined or ssh_key_file.stat.exists == False
+
+    - name: add user
+      user: name="{{ user }}" shell="{{ shell }}" password="{{ password }}"
+
+    - name: add authorized key
+      authorized_key: user="{{ user }}"
+                      key="{{ lookup('file', ssh_key_location) }}"
+
+    - name: install sudo
+      apt: name=sudo update_cache=yes state=present cache_valid_time=86400
+
+    - name: add user to sudoers
+      lineinfile: dest=/etc/sudoers
+                  regexp="{{ user }} ALL"
+                  line="{{ user }} ALL=(ALL) ALL"
+                  state=present
+

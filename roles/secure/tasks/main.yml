@@ -1,0 +1,71 @@
+---
+- name: update apt
+  apt: update_cache=yes cache_valid_time=86400
+
+- name: install packages
+  apt: name={{ item }} state=latest
+  with_items:
+    - ufw
+    - fail2ban
+    - unattended-upgrades
+
+- name: set up unattended upgrades
+  copy: src=apt_periodic dest=/etc/apt/apt.conf.d/10periodic
+
+- name: ufw allow ssh traffic
+  ufw: rule=allow port={{ ssh_port }} proto=tcp
+
+- name: ufw allow http traffic
+  ufw: rule=allow port=80 proto=tcp
+
+- name: ufw allow https traffic
+  ufw: rule=allow port=443 proto=tcp
+
+- name: ufs deny everything else
+  ufw: state=enabled policy=deny
+
+- name: set up fail2ban
+  command: cp /etc/fail2ban/jail.conf /etc/fail2ban/jail.local
+           creates=/etc/fail2ban/jail.local
+  notify: restart fail2ban
+
+- name: limit su access to sudo group
+  command: dpkg-statoverride --update --add root sudo 4750 /bin/su
+  register: limit_su_res
+  failed_when: limit_su_res.rc != 0 and ("already exists" not in limit_su_res.stderr)
+  changed_when: limit_su_res.rc == 0
+
+- name: secure shared memory
+  lineinfile: dest=/etc/fstab
+              regexp="/run/shm"
+              line="none     /run/shm     tmpfs     defaults,noexec,nosuid,nodev     0     0"
+              state=present
+              backrefs=yes
+
+- name: disallow password authentication
+  lineinfile: dest=/etc/ssh/sshd_config
+              regexp="^PasswordAuthentication"
+              line="PasswordAuthentication no"
+              state=present
+  notify: restart ssh
+
+- name: allow ssh only for primary user
+  lineinfile: dest=/etc/ssh/sshd_config
+              regexp="^AllowUsers"
+              line="AllowUsers {{ user }}"
+              state=present
+  notify: restart ssh
+
+- name: disallow root ssh access
+  lineinfile: dest=/etc/ssh/sshd_config
+              regexp="^PermitRootLogin"
+              line="PermitRootLogin no"
+              state=present
+  notify: restart ssh
+
+- name: set ssh port
+  lineinfile: dest=/etc/ssh/sshd_config
+              regexp="^Port\s"
+              line="Port {{ ssh_port }}"
+              state=present
+  notify: restart ssh
