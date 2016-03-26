@@ -12,6 +12,13 @@
 - name: set up unattended upgrades
   copy: src=apt_periodic dest=/etc/apt/apt.conf.d/10periodic
 
+- name: automatically remove unused dependencies
+  lineinfile: dest=/etc/apt/apt.conf.d/50unattended-upgrades
+              regexp="Unattended-Upgrade::Remove-Unused-Dependencies"
+              line="Unattended-Upgrade::Remove-Unused-Dependencies \"true\";"
+              state=present
+              create=yes
+
 - name: ufw allow ssh traffic
   ufw: rule=allow port={{ ssh_port }} proto=tcp
 
