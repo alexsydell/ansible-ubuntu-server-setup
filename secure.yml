@@ -2,5 +2,7 @@
 - hosts: all
   user: "{{ user }}"
   become: yes
+  environment:
+    LC_ALL: en_US.UTF-8
   roles:
     - { role: secure }
