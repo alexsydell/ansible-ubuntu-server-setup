@@ -36,11 +36,19 @@
            creates=/etc/fail2ban/jail.local
   notify: restart fail2ban
 
+- name: check su access
+  command: dpkg-statoverride --list /bin/su
+  register: su_statoverride
+  changed_when: False
+  failed_when: False
+
+- name: remove existing su access override
+  command: dpkg-statoverride --remove /bin/su
+  when: su_statoverride.stdout and su_statoverride.stdout != "root sudo 4750 /bin/su"
+
 - name: limit su access to sudo group
   command: dpkg-statoverride --update --add root sudo 4750 /bin/su
-  register: limit_su_res
-  failed_when: limit_su_res.rc != 0 and ("already exists" not in limit_su_res.stderr)
-  changed_when: limit_su_res.rc == 0
+  when: not su_statoverride.stdout or su_statoverride.stdout != "root sudo 4750 /bin/su"
 
 - name: secure shared memory
   lineinfile: dest=/etc/fstab
