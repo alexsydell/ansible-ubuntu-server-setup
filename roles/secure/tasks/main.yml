@@ -3,11 +3,12 @@
   apt: update_cache=yes cache_valid_time=86400
 
 - name: install packages
-  apt: name={{ item }} state=latest
-  with_items:
-    - ufw
-    - fail2ban
-    - unattended-upgrades
+  apt:
+    state: latest
+    package:
+      - ufw
+      - fail2ban
+      - unattended-upgrades
 
 - name: set up unattended upgrades
   copy: src=apt_periodic dest=/etc/apt/apt.conf.d/10periodic
