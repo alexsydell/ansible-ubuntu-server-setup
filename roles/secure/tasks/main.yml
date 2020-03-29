@@ -21,7 +21,7 @@
               create=yes
 
 - name: ufw allow ssh traffic
-  ufw: rule=allow port={{ ssh_port }} proto=tcp
+  ufw: rule=allow port={{ ssh_port|string }} proto=tcp
 
 - name: ufw allow http traffic
   ufw: rule=allow port=80 proto=tcp
